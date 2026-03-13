@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperMercado - Início</title>
+    <link rel="stylesheet" href="../assets/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header placeholder - will be filled by SuperMercado.renderHeader() -->
+    <div class="header-placeholder"></div>
+
+    <main>
+        <section class="hero">
+            <h1>Bem-vindo ao SuperMercado</h1>
+            <p>Os melhores produtos com os melhores preços</p>
+        </section>
+
+        <section class="products-section">
+            <h2>Produtos em Destaque</h2>
+            <div class="products-grid" id="products-grid"></div>
+        </section>
+    </main>
+
+    <!-- Footer placeholder -->
+    <div class="footer-placeholder"></div>
+
+    <!-- Scripts -->
+    <script src="../js/main.js"></script>
+    <script src="../js/products.js"></script>
+    <script src="../js/components.js"></script>
+    <script>
+        // Page-specific initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            const productsGrid = document.getElementById('products-grid');
+            if (productsGrid) {
+                // Use featured products instead of all products
+                Products.getFeatured().forEach(product => {
+                    productsGrid.appendChild(Components.productCard(product));
+                });
+            }
+        });
+    </script>
+</body>
+</html>

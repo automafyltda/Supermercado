@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperMercado - Categoria</title>
+    <link rel="stylesheet" href="../assets/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="header-placeholder"></div>
+
+    <main>
+        <section class="filtered-section">
+            <h1 id="filter-title"></h1>
+            <div class="products-grid" id="filtered-products"></div>
+        </section>
+    </main>
+
+    <div class="footer-placeholder"></div>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/products.js"></script>
+    <script src="../js/components.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const category = urlParams.get('category');
+            const categoryInfo = Products.getCategoryBySlug(category);
+            
+            const filterTitle = document.getElementById('filter-title');
+            const filteredProducts = document.getElementById('filtered-products');
+            
+            if (filterTitle) {
+                filterTitle.textContent = categoryInfo ? categoryInfo.name : category;
+            }
+            
+            if (filteredProducts) {
+                const categoryProducts = Products.getByCategory(category);
+                
+                if (categoryProducts.length > 0) {
+                    categoryProducts.forEach(product => {
+                        filteredProducts.appendChild(Components.productCard(product));
+                    });
+                } else {
+                    filteredProducts.appendChild(
+                        Components.emptyState(
+                            'fa-box-open',
+                            SuperMercado.uiText.noProducts,
+                            SuperMercado.uiText.noProductsMessage,
+                            SuperMercado.uiText.continueShopping,
+                            'categorias.html'
+                        )
+                    );
+                }
+            }
+        });
+    </script>
+</body>
+</html>

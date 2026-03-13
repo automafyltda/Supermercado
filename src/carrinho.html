@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperMercado - Carrinho</title>
+    <link rel="stylesheet" href="../assets/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Additional styles for scrollable cart */
+        .cart-items {
+            max-height: 500px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) var(--background-light);
+            padding-right: 5px;
+        }
+
+        .cart-items::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .cart-items::-webkit-scrollbar-track {
+            background: var(--background-light);
+            border-radius: 4px;
+        }
+
+        .cart-items::-webkit-scrollbar-thumb {
+            background-color: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .cart-items::-webkit-scrollbar-thumb:hover {
+            background-color: var(--primary-dark);
+        }
+
+        /* Cart item animations */
+        .cart-item {
+            animation: slideIn 0.3s ease;
+            transition: all 0.3s ease;
+        }
+
+        .cart-item.removing {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Quantity button disabled state */
+        .quantity-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .quantity-btn:disabled:hover {
+            background-color: var(--background-light);
+            color: var(--text-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="header-placeholder"></div>
+
+    <main>
+        <section class="cart-section">
+            <h1 id="cart-title">Meu Carrinho</h1>
+            <div class="cart-container">
+                <div class="cart-items" id="cart-items"></div>
+                <div class="cart-summary" id="cart-summary">
+                    <h3 id="summary-title">Resumo do Pedido</h3>
+                    <div class="summary-row">
+                        <span id="subtotal-label">Subtotal:</span>
+                        <span id="subtotal">€0.00</span>
+                    </div>
+                    <div class="summary-row">
+                        <span id="discounts-label">Descontos:</span>
+                        <span id="discounts">-€0.00</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span id="total-label">Total:</span>
+                        <span id="total">€0.00</span>
+                    </div>
+                    <button class="checkout-btn" id="checkout-btn">
+                        <i class="fa-solid fa-credit-card"></i> <span id="checkout-text">Finalizar Compra</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div class="footer-placeholder"></div>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/products.js"></script>
+    <script src="../js/components.js"></script>
+    <script>
+        // Cart management functions
+        function updateQuantity(productId, change) {
+            const item = SuperMercado.cart.items.find(item => item.id === productId);
+            if (!item) return;
+
+            const newQuantity = item.quantity + change;
+            
+            if (newQuantity <= 0) {
+                // Remove item with animation
+                removeItemWithAnimation(productId);
+            } else {
+                // Update quantity
+                SuperMercado.cart.updateQuantity(productId, change);
+                renderCart(); // Re-render to show updated quantities
+            }
+        }
+
+        function removeItem(productId) {
+            SuperMercado.cart.remove(productId);
+            renderCart();
+        }
+
+        function removeItemWithAnimation(productId) {
+            const itemElement = document.querySelector(`.cart-item[data-product-id="${productId}"]`);
+            
+            if (itemElement) {
+                itemElement.classList.add('removing');
+                
+                setTimeout(() => {
+                    SuperMercado.cart.remove(productId);
+                    renderCart();
+                }, 300); // Match animation duration
+            } else {
+                SuperMercado.cart.remove(productId);
+                renderCart();
+            }
+        }
+
+        function renderCart() {
+            const cartItems = document.getElementById('cart-items');
+            const subtotalEl = document.getElementById('subtotal');
+            const discountsEl = document.getElementById('discounts');
+            const totalEl = document.getElementById('total');
+            
+            if (!cartItems) return;
+            
+            if (SuperMercado.cart.items.length === 0) {
+                cartItems.innerHTML = '';
+                cartItems.appendChild(
+                    Components.emptyState(
+                        'fa-cart-shopping',
+                        SuperMercado.getText('emptyCart'),
+                        SuperMercado.getText('emptyCartMessage'),
+                        SuperMercado.getText('seeProducts'),
+                        'index.html'
+                    )
+                );
+                
+                if (subtotalEl) subtotalEl.textContent = SuperMercado.formatPrice(0);
+                if (discountsEl) discountsEl.textContent = '-' + SuperMercado.formatPrice(0);
+                if (totalEl) totalEl.textContent = SuperMercado.formatPrice(0);
+                return;
+            }
+            
+            cartItems.innerHTML = '';
+            SuperMercado.cart.items.forEach(item => {
+                const itemElement = createCartItemElement(item);
+                cartItems.appendChild(itemElement);
+            });
+            
+            const totals = SuperMercado.cart.getTotals();
+            if (subtotalEl) subtotalEl.textContent = SuperMercado.formatPrice(totals.subtotal);
+            if (discountsEl) discountsEl.textContent = '-' + SuperMercado.formatPrice(totals.discounts);
+            if (totalEl) totalEl.textContent = SuperMercado.formatPrice(totals.total);
+        }
+
+        function createCartItemElement(item) {
+            const itemElement = document.createElement('div');
+            itemElement.className = 'cart-item';
+            itemElement.setAttribute('data-product-id', item.id);
+            
+            itemElement.innerHTML = `
+                <img src="${item.image}" alt="${item.name}" class="cart-item-image" loading="lazy">
+                <div class="cart-item-info">
+                    <h3>${item.name}</h3>
+                    <p class="cart-item-price">${SuperMercado.formatPrice(item.price)}</p>
+                    ${item.originalPrice > item.price ? 
+                        `<p class="cart-item-original-price"><s>${SuperMercado.formatPrice(item.originalPrice)}</s></p>` : 
+                        ''}
+                </div>
+                <div class="cart-item-actions">
+                    <div class="quantity-controls">
+                        <button class="quantity-btn" onclick="updateQuantity(${item.id}, -1)" 
+                                ${item.quantity <= 1 ? 'disabled' : ''}>
+                            <i class="fa-solid fa-minus"></i>
+                        </button>
+                        <span class="item-quantity">${item.quantity}</span>
+                        <button class="quantity-btn" onclick="updateQuantity(${item.id}, 1)">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                    <button class="remove-btn" onclick="removeItemWithAnimation(${item.id})">
+                        <i class="fa-solid fa-trash"></i> ${SuperMercado.getText('removeFromCart')}
+                    </button>
+                </div>
+            `;
+            
+            return itemElement;
+        }
+
+        // Update all text elements with current language
+        function updateUIText() {
+            const cartTitle = document.getElementById('cart-title');
+            const summaryTitle = document.getElementById('summary-title');
+            const subtotalLabel = document.getElementById('subtotal-label');
+            const discountsLabel = document.getElementById('discounts-label');
+            const totalLabel = document.getElementById('total-label');
+            const checkoutText = document.getElementById('checkout-text');
+            
+            if (cartTitle) cartTitle.textContent = SuperMercado.getText('myCart');
+            if (summaryTitle) summaryTitle.textContent = SuperMercado.getText('orderSummary');
+            if (subtotalLabel) subtotalLabel.textContent = SuperMercado.getText('subtotal') + ':';
+            if (discountsLabel) discountsLabel.textContent = SuperMercado.getText('discounts') + ':';
+            if (totalLabel) totalLabel.textContent = SuperMercado.getText('total') + ':';
+            if (checkoutText) checkoutText.textContent = SuperMercado.getText('checkout');
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCart();
+            updateUIText();
+            
+            // Checkout button with translated "permanently closed" message
+            document.getElementById('checkout-btn')?.addEventListener('click', () => {
+                alert(SuperMercado.getText('permanentlyClosed'));
+            });
+        });
+
+        // Expose functions globally for button clicks
+        window.updateQuantity = updateQuantity;
+        window.removeItemWithAnimation = removeItemWithAnimation;
+        window.renderCart = renderCart;
+    </script>
+</body>
+</html>
